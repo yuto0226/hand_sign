@@ -1,0 +1,37 @@
+[project]
+name = "hand-sign"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "matplotlib>=3.10.8",
+    "mediapipe>=0.10.33",
+    "numpy>=2.4.4",
+    "opencv-python>=4.13.0.92",
+    "torch>=2.2.0",
+    "torchvision>=0.17.0",
+    "tqdm>=4.67.0",
+]
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.6.0",
+    "pyright>=1.1.409",
+    "pytest>=9.0.2",
+    "ruff>=0.15.8",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu130" }
+torchvision = { index = "pytorch-cu130" }
+
+[[tool.uv.index]]
+name = "pytorch-cu130"
+url = "https://download.pytorch.org/whl/cu130"
+explicit = true
+
