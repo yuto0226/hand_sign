@@ -46,7 +46,6 @@ class SignFilter:
     def update(
         self,
         pred_idx: int,
-        conf: float,
         classes: list[str],
         now: float,
     ) -> str | None:

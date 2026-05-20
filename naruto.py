@@ -123,6 +123,8 @@ def main():
         min_tracking_confidence=0.5,
     )
 
+    t0 = time.monotonic()
+
     cap = cv2.VideoCapture(args.camera)
     if not cap.isOpened():
         print("[!] can't open camera")
@@ -137,8 +139,8 @@ def main():
                 if not ret:
                     break
 
-                timestamp_ms = int(time.time() * 1000)
                 now = time.monotonic()
+                timestamp_ms = int((now - t0) * 1000)
                 rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
                 result = landmarker.detect_for_video(mp_image, timestamp_ms)
@@ -160,9 +162,9 @@ def main():
                     probs = probs_t.tolist()
                     draw_overlay(frame, classes, probs, pred_idx, conf)
 
-                    sign = sign_filter.update(pred_idx, conf, classes, now)
+                    sign = sign_filter.update(pred_idx, classes, now)
                 else:
-                    sign = sign_filter.update(-1, 0.0, classes, now)
+                    sign = sign_filter.update(-1, classes, now)
 
                 if sign is not None:
                     fsm.feed(sign, now)
