@@ -112,6 +112,7 @@ def test_fsm_leading_jutsu_returns_best():
     name, step, total = result
     assert step == 1
     assert name in ("火遁・豪火球の術", "土遁・土流壁")
+    assert total == len({**FIRE, **WALL}[name])
 
 
 def test_fsm_unknown_sign_is_ignored():
