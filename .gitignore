@@ -10,4 +10,8 @@ wheels/
 .venv
 
 # Artifact
+data/
 *.task
+*.pth
+*.npz
+*.png

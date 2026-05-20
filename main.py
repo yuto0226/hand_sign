@@ -7,6 +7,7 @@ from pathlib import Path
 import cv2
 import mediapipe as mp
 
+from model import FINGER_JOINTS, FINGER_LANDMARK_IDXS, FINGER_NAMES
 from utils import angle_at, draw_landmarks
 
 
@@ -15,16 +16,6 @@ MODEL_URL = (
     "https://storage.googleapis.com/mediapipe-models/"
     "hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task"
 )
-
-# fmt:off
-_FINGERS = [
-    ("thumb",  [ 1,  2,  3,  4], [( 0,  1,  2), ( 1,  2,  3), ( 2,  3,  4)]),
-    ("index",  [ 5,  6,  7,  8], [( 0,  5,  6), ( 5,  6,  7), ( 6,  7,  8)]),
-    ("middle", [ 9, 10, 11, 12], [( 0,  9, 10), ( 9, 10, 11), (10, 11, 12)]),
-    ("ring",   [13, 14, 15, 16], [( 0, 13, 14), (13, 14, 15), (14, 15, 16)]),
-    ("pinky",  [17, 18, 19, 20], [( 0, 17, 18), (17, 18, 19), (18, 19, 20)]),
-]
-# fmt:on
 
 
 def download_model():
@@ -44,7 +35,9 @@ def snapshot(result):
         print(f"\n── hand {hand_idx} ──────────────")
         print(f"  {'wrist':<6}  ({wrist.x:.3f}, {wrist.y:.3f}, {wrist.z:.3f})")
 
-        for name, idxs, joints in _FINGERS:
+        for name, idxs, joints in zip(
+            FINGER_NAMES, FINGER_LANDMARK_IDXS, FINGER_JOINTS
+        ):
             coords = " ".join(
                 f"({lm[i].x:.3f},{lm[i].y:.3f},{lm[i].z:.3f})" for i in idxs
             )
