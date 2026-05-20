@@ -95,8 +95,8 @@ class JutsuFSM:
                 self._step[name] += 1
                 self._last_at[name] = now
                 if self._step[name] == len(seq):
-                    self.on_jutsu(name)
                     self._step[name] = 0
+                    self.on_jutsu(name)
             else:
                 self._step[name] = 0
 
