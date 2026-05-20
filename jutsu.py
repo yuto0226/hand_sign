@@ -128,8 +128,14 @@ def draw_jutsu(
     if last_fired is not None:
         name, fired_at = last_fired
         if now - fired_at < 1.0:
-            (tw, _), _ = cv2.getTextSize(name, font, 1.2, 2)
-            cv2.putText(frame, name, ((w - tw) // 2, 70), font, 1.2, (255, 255, 255), 2)
+            (tw, th), _ = cv2.getTextSize(name, font, 1.2, 2)  # noqa: F841
+            tx = (w - tw) // 2
+            roi = frame[30:90, max(tx - 8, 0) : min(tx + tw + 8, w)]
+            black = np.zeros_like(roi)
+            frame[30:90, max(tx - 8, 0) : min(tx + tw + 8, w)] = cv2.addWeighted(
+                roi, 0.45, black, 0.55, 0
+            )
+            cv2.putText(frame, name, (tx, 70), font, 1.2, (255, 255, 255), 2)
 
     # Progress: sign chain for the leading jutsu
     leading = fsm.leading_jutsu()
@@ -150,5 +156,5 @@ def draw_jutsu(
         x += lw + 4
         if i < total - 1:
             cv2.putText(frame, ">", (x, y), font, 0.7, (100, 100, 100), 1)
-            (aw, _), _ = cv2.getTextSize("> ", font, 0.7, 1)
-            x += aw
+            (aw, _), _ = cv2.getTextSize(">", font, 0.7, 1)
+            x += aw + 4
