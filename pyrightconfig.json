@@ -1,3 +1,4 @@
 {
-  "reportPrivateImportUsage": "none"
+  "reportPrivateImportUsage": "none",
+  "reportAttributeAccessIssue": "none"
 }
