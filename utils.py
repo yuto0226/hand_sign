@@ -1,7 +1,23 @@
 from __future__ import annotations
 
+import urllib.request
+from pathlib import Path
+
 import cv2
 import numpy as np
+
+MODEL_PATH = "hand_landmarker.task"
+MODEL_URL = (
+    "https://storage.googleapis.com/mediapipe-models/"
+    "hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task"
+)
+
+
+def download_model() -> None:
+    if not Path(MODEL_PATH).exists():
+        print("[*] downloading hand landmarker model ...")
+        urllib.request.urlretrieve(MODEL_URL, MODEL_PATH)
+        print("[+] download complete")
 
 
 WHITE = (255, 255, 255)

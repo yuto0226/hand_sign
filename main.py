@@ -1,28 +1,12 @@
 """hand landmark visualization for debugging — press q: quit, space: log"""
 
 import time
-import urllib.request
-from pathlib import Path
 
 import cv2
 import mediapipe as mp
 
 from model import FINGER_JOINTS, FINGER_LANDMARK_IDXS, FINGER_NAMES
-from utils import angle_at, draw_landmarks
-
-
-MODEL_PATH = "hand_landmarker.task"
-MODEL_URL = (
-    "https://storage.googleapis.com/mediapipe-models/"
-    "hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task"
-)
-
-
-def download_model():
-    if not Path(MODEL_PATH).exists():
-        print("[*] downloading hand landmarker model ...")
-        urllib.request.urlretrieve(MODEL_URL, MODEL_PATH)
-        print("[+] download complete")
+from utils import MODEL_PATH, angle_at, download_model, draw_landmarks
 
 
 def snapshot(result):
