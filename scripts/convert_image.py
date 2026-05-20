@@ -23,7 +23,7 @@ import numpy as np
 from tqdm import tqdm
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from model import extract_features
+from model import encode_hands
 from utils import MODEL_PATH, download_model
 
 
@@ -52,7 +52,7 @@ def main() -> None:
     options = mp.tasks.vision.HandLandmarkerOptions(
         base_options=mp.tasks.BaseOptions(model_asset_path=MODEL_PATH),
         running_mode=mp.tasks.vision.RunningMode.IMAGE,
-        num_hands=1,
+        num_hands=2,
         min_hand_detection_confidence=0.5,
     )
 
@@ -79,7 +79,7 @@ def main() -> None:
             out_dir.mkdir(parents=True, exist_ok=True)
             np.savez_compressed(
                 out_dir / (img_path.stem + ".npz"),
-                features=extract_features(result.hand_landmarks[0]),
+                features=encode_hands(result.hand_landmarks, result.handedness),
             )
             saved += 1
 

@@ -19,7 +19,7 @@ import torch.nn.functional as F
 
 from evaluate import load_checkpoint
 from jutsu import JutsuFSM, SignFilter, draw_jutsu
-from model import HandSignTransformer, extract_features
+from model import HandSignTransformer, encode_hands
 from utils import MODEL_PATH, WHITE, download_model, draw_landmarks
 
 
@@ -118,7 +118,7 @@ def main():
     options = HandLandmarkerOptions(
         base_options=mp.tasks.BaseOptions(model_asset_path=MODEL_PATH),
         running_mode=VisionRunningMode.VIDEO,
-        num_hands=1,
+        num_hands=2,
         min_hand_detection_confidence=0.7,
         min_tracking_confidence=0.5,
     )
@@ -146,10 +146,10 @@ def main():
                 result = landmarker.detect_for_video(mp_image, timestamp_ms)
 
                 if result.hand_landmarks:
-                    landmarks = result.hand_landmarks[0]
-                    draw_landmarks(frame, landmarks)
+                    for lms in result.hand_landmarks:
+                        draw_landmarks(frame, lms)
 
-                    features = extract_features(landmarks)
+                    features = encode_hands(result.hand_landmarks, result.handedness)
                     x = torch.from_numpy(features).unsqueeze(0).to(device)
 
                     with torch.no_grad():

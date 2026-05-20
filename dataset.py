@@ -9,7 +9,7 @@ class NPZGestureDataset(Dataset):
 
     Expected structure:
         root/
-          class_a/  *.npz  (each stores features array of shape (83,))
+          class_a/  *.npz  (each stores features array of shape (166,))
           class_b/  *.npz
           ...
     """

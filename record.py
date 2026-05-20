@@ -17,7 +17,7 @@ import cv2
 import mediapipe as mp
 import numpy as np
 
-from model import extract_features
+from model import encode_hands
 from utils import MODEL_PATH, download_model, draw_landmarks
 
 
@@ -43,14 +43,14 @@ def main():
     options = HandLandmarkerOptions(
         base_options=mp.tasks.BaseOptions(model_asset_path=MODEL_PATH),
         running_mode=VisionRunningMode.VIDEO,
-        num_hands=1,
+        num_hands=2,
         min_hand_detection_confidence=0.7,
         min_tracking_confidence=0.5,
     )
 
-    def save_sample(landmarks) -> Path:
+    def save_sample(lms_list, handedness_list) -> Path:
         nonlocal frame_id
-        features = extract_features(landmarks)
+        features = encode_hands(lms_list, handedness_list)
         path = out_dir / f"{category}_{session_id}_{frame_id:06d}.npz"
         np.savez_compressed(path, features=features)
         frame_id += 1
@@ -76,15 +76,14 @@ def main():
                 mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
                 result = landmarker.detect_for_video(mp_image, timestamp_ms)
 
-                landmarks = result.hand_landmarks[0] if result.hand_landmarks else None
-
-                if landmarks:
-                    draw_landmarks(frame, landmarks)
+                has_hand = bool(result.hand_landmarks)
+                for lms in result.hand_landmarks:
+                    draw_landmarks(frame, lms)
 
                 if recording:
                     cv2.circle(frame, (20, 20), 8, (0, 0, 255), -1)
-                    if landmarks:
-                        save_sample(landmarks)
+                    if has_hand:
+                        save_sample(result.hand_landmarks, result.handedness)
 
                 cv2.imshow("record", frame)
                 key = cv2.waitKey(1) & 0xFF
@@ -96,8 +95,8 @@ def main():
                     else:
                         print(f"[!] recording stopped, saved {frame_id} frames total")
                 elif key == ord(" "):
-                    if landmarks:
-                        path = save_sample(landmarks)
+                    if has_hand:
+                        path = save_sample(result.hand_landmarks, result.handedness)
                         print(f"[+] snapshot → {path}")
                     else:
                         print("[!] no hand detected")

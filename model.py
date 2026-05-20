@@ -8,6 +8,7 @@ from utils import angle_at
 
 _FINGER_DIM = 15  # 4 landmarks × 3 coords + 3 joint angles
 _PALM_DIM = 8  # wrist coords (3) + 5 palm distances
+HAND_DIM = 83  # feature vector for a single hand
 
 FINGER_NAMES = ["thumb", "index", "middle", "ring", "pinky"]
 
@@ -39,9 +40,6 @@ def extract_features(landmarks) -> np.ndarray:
       [ 0:63] — 21 landmark coords (x,y,z)
       [63:78] — 15 joint angles (5 fingers × 3)
       [78:83] — 5 palm distances (fingertip → wrist, normalised by palm scale)
-
-    Palm distances are divided by the wrist→middle-MCP distance so the values
-    are invariant to how far the hand is from the camera.
     """
     coords = np.array([[lm.x, lm.y, lm.z] for lm in landmarks]).flatten()
     lm_xyz = coords.reshape(21, 3)
@@ -61,35 +59,47 @@ def extract_features(landmarks) -> np.ndarray:
     return np.concatenate([coords, angles, dists]).astype(np.float32)
 
 
-def _split_tokens(x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
-    """Split (B, 83) feature vector into finger and palm tokens.
+def encode_hands(lms_list, handedness_list) -> np.ndarray:
+    """Build a 166-dim feature vector from MediaPipe hand detections.
 
-    Feature layout:
-      x[:,  0:63] — 21 landmark coords (x,y,z)
-      x[:, 63:78] — 15 joint angles, (5 fingers × 3 angles)
-      x[:, 78:83] — 5 palm distances
-
-    Returns:
-      fingers: (B, 5, 15) — thumb/index/middle/ring/pinky
-      palm:    (B, 8)     — wrist coords + 5 palm distances
+    Layout: [left_83 | right_83]. Missing hand slots are zero-padded.
     """
-    B = x.shape[0]
-    lm = x[:, :63].reshape(B, 21, 3)
-    angles = x[:, 63:78].reshape(B, 5, 3)
-    dists = x[:, 78:83]
+    left = np.zeros(HAND_DIM, dtype=np.float32)
+    right = np.zeros(HAND_DIM, dtype=np.float32)
+    for lms, hand_info in zip(lms_list, handedness_list):
+        label = hand_info[0].category_name
+        feat = extract_features(lms)
+        if label == "Left":
+            left = feat
+        else:
+            right = feat
+    return np.concatenate([left, right])
 
-    # lm[1:21]: 5 fingers × 4 landmarks each; lm[0] is wrist (palm token only)
-    fingers_lm = lm[:, 1:, :].reshape(B, 5, 12)
-    fingers = torch.cat([fingers_lm, angles], dim=2)  # (B, 5, 15)
-    palm = torch.cat([x[:, :3], dists], dim=1)  # (B, 8)
-    return fingers, palm
+
+def _split_tokens(x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+    """Split (B, 166) feature vector into finger tokens (B,10,15) and palm tokens (B,2,8)."""
+    B = x.shape[0]
+
+    def _hand_tokens(block: torch.Tensor):
+        lm = block[:, :63].reshape(B, 21, 3)
+        angles = block[:, 63:78].reshape(B, 5, 3)
+        dists = block[:, 78:83]
+        fingers = torch.cat([lm[:, 1:, :].reshape(B, 5, 12), angles], dim=2)  # (B,5,15)
+        palm = torch.cat([block[:, :3], dists], dim=1)  # (B, 8)
+        return fingers, palm
+
+    f_l, p_l = _hand_tokens(x[:, :HAND_DIM])
+    f_r, p_r = _hand_tokens(x[:, HAND_DIM:])
+    fingers = torch.cat([f_l, f_r], dim=1)  # (B, 10, 15)
+    palms = torch.stack([p_l, p_r], dim=1)  # (B, 2, 8)
+    return fingers, palms
 
 
 class HandSignTransformer(nn.Module):
     """Transformer classifier for static hand gestures.
 
-    Tokens: [CLS, Thumb, Index, Middle, Ring, Pinky, Palm]
-    CLS token output is used for classification.
+    Tokens: [CLS] + 10 finger tokens + 2 palm tokens (13 total).
+    Input: (B, 166) feature vector from encode_hands.
     """
 
     def __init__(
@@ -121,15 +131,15 @@ class HandSignTransformer(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         B = x.shape[0]
-        fingers, palm = _split_tokens(x)
+        fingers, palms = _split_tokens(x)
 
         seq = torch.cat(
             [
                 self.cls_token.expand(B, -1, -1),
-                self.finger_proj(fingers),
-                self.palm_proj(palm).unsqueeze(1),
+                self.finger_proj(fingers),  # (B, 10, d_model)
+                self.palm_proj(palms),  # (B,  2, d_model)
             ],
             dim=1,
-        )  # (B, 7, d_model)
+        )  # (B, 13, d_model)
 
         return self.head(self.norm(self.transformer(seq)[:, 0, :]))
