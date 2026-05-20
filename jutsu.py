@@ -101,6 +101,11 @@ class JutsuFSM:
                 self._step[name] = 0
 
     def leading_jutsu(self) -> tuple[str, int, int] | None:
+        """Return (name, step, total) for the jutsu with the most progress.
+
+        Ties are broken by insertion order of the jutsu dict (first entry wins).
+        Returns None if no jutsu has any progress.
+        """
         best_name = max(self._step, key=self._step.__getitem__)
         if self._step[best_name] == 0:
             return None
