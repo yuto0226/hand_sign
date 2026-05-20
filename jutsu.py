@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+
 
 SIGN_KANJI: dict[str, str] = {
     "ne": "子",
@@ -57,3 +59,49 @@ class SignFilter:
             self._current = None  # reset so it must be re-held
             return sign
         return None
+
+
+class JutsuFSM:
+    """Matches a stream of confirmed signs against jutsu sequences.
+
+    Tracks per-jutsu progress. Resets a jutsu's progress on wrong sign
+    or when gap_ms elapses since the last confirmed sign for that jutsu.
+    """
+
+    def __init__(
+        self,
+        on_jutsu: Callable[[str], None],
+        jutsu: dict[str, list[str]] = JUTSU,
+        gap_ms: float = 3000,
+    ) -> None:
+        self.jutsu = jutsu
+        self.gap_ms = gap_ms
+        self.on_jutsu = on_jutsu
+        self._step: dict[str, int] = {name: 0 for name in jutsu}
+        self._last_at: dict[str, float] = {name: 0.0 for name in jutsu}
+
+    def feed(self, sign: str, now: float) -> None:
+        kanji = SIGN_KANJI.get(sign)
+        if kanji is None:
+            return
+        for name, seq in self.jutsu.items():
+            if (
+                self._step[name] > 0
+                and (now - self._last_at[name]) * 1000 > self.gap_ms
+            ):
+                self._step[name] = 0
+            step = self._step[name]
+            if kanji == seq[step]:
+                self._step[name] += 1
+                self._last_at[name] = now
+                if self._step[name] == len(seq):
+                    self.on_jutsu(name)
+                    self._step[name] = 0
+            else:
+                self._step[name] = 0
+
+    def leading_jutsu(self) -> tuple[str, int, int] | None:
+        best_name = max(self._step, key=self._step.__getitem__)
+        if self._step[best_name] == 0:
+            return None
+        return (best_name, self._step[best_name], len(self.jutsu[best_name]))
