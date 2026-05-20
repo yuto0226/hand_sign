@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
+import cv2
+import numpy as np
+
 
 SIGN_KANJI: dict[str, str] = {
     "ne": "子",
@@ -110,3 +113,42 @@ class JutsuFSM:
         if self._step[best_name] == 0:
             return None
         return (best_name, self._step[best_name], len(self.jutsu[best_name]))
+
+
+def draw_jutsu(
+    frame: np.ndarray,
+    fsm: JutsuFSM,
+    last_fired: tuple[str, float] | None,
+    now: float,
+) -> None:
+    h, w = frame.shape[:2]
+    font = cv2.FONT_HERSHEY_SIMPLEX
+
+    # Flash: show jutsu name for 1s after firing
+    if last_fired is not None:
+        name, fired_at = last_fired
+        if now - fired_at < 1.0:
+            (tw, _), _ = cv2.getTextSize(name, font, 1.2, 2)
+            cv2.putText(frame, name, ((w - tw) // 2, 70), font, 1.2, (255, 255, 255), 2)
+
+    # Progress: sign chain for the leading jutsu
+    leading = fsm.leading_jutsu()
+    if leading is None:
+        return
+
+    jutsu_name, step, total = leading
+    seq = fsm.jutsu[jutsu_name]
+    x, y = 10, h - 50
+
+    for i, kanji in enumerate(seq):
+        done = i < step
+        current = i == step
+        color = (0, 220, 120) if done else (200, 200, 200) if current else (80, 80, 80)
+        label = f"[{kanji}]" if current else kanji
+        cv2.putText(frame, label, (x, y), font, 0.8, color, 2)
+        (lw, _), _ = cv2.getTextSize(label, font, 0.8, 2)
+        x += lw + 4
+        if i < total - 1:
+            cv2.putText(frame, ">", (x, y), font, 0.7, (100, 100, 100), 1)
+            (aw, _), _ = cv2.getTextSize("> ", font, 0.7, 1)
+            x += aw
