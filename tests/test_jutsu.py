@@ -1,4 +1,4 @@
-from jutsu import SignFilter, JutsuFSM
+from jutsu import JutsuFSM, SignFilter  # type: ignore[reportAttributeAccessIssue]
 
 
 def test_sign_filter_emits_after_hold():
