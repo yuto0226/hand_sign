@@ -1,6 +1,5 @@
 """hand landmark visualization for debugging — press q: quit, space: log"""
 
-import sys
 import time
 import urllib.request
 from pathlib import Path
