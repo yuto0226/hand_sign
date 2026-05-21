@@ -73,10 +73,19 @@ def _capture_loop(landmarker, cap) -> None:
             mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_buf), timestamp_ms
         )
 
+        bboxes = []
         for lms in result.hand_landmarks:
             draw_landmarks(frame, lms)
-            x1, y1, x2, y2 = _bbox_from_landmarks(lms, w, h)
-            cv2.rectangle(frame, (x1, y1), (x2, y2), SAGE, 2)
+            bbox = _bbox_from_landmarks(lms, w, h)
+            cv2.rectangle(frame, (bbox[0], bbox[1]), (bbox[2], bbox[3]), SILVER, 2)
+            bboxes.append(bbox)
+
+        if bboxes:
+            ux1 = min(b[0] for b in bboxes)
+            uy1 = min(b[1] for b in bboxes)
+            ux2 = max(b[2] for b in bboxes)
+            uy2 = max(b[3] for b in bboxes)
+            cv2.rectangle(frame, (ux1, uy1), (ux2, uy2), SAGE, 2)
 
         _draw_status(frame, len(result.hand_landmarks), fps)
         cv2.imshow("MediaPipe — hand detection", frame)
