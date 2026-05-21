@@ -23,6 +23,26 @@ def download_model() -> None:
 WHITE = (255, 255, 255)
 GRAY = (170, 170, 170)
 
+FINGER_NAMES = ["thumb", "index", "middle", "ring", "pinky"]
+
+# fmt:off
+FINGER_LANDMARK_IDXS = [
+    [ 1,  2,  3,  4],
+    [ 5,  6,  7,  8],
+    [ 9, 10, 11, 12],
+    [13, 14, 15, 16],
+    [17, 18, 19, 20],
+]
+
+FINGER_JOINTS: list[list[tuple[int, int, int]]] = [
+    [( 0,  1,  2), ( 1,  2,  3), ( 2,  3,  4)],  # thumb
+    [( 0,  5,  6), ( 5,  6,  7), ( 6,  7,  8)],  # index
+    [( 0,  9, 10), ( 9, 10, 11), (10, 11, 12)],  # middle
+    [( 0, 13, 14), (13, 14, 15), (14, 15, 16)],  # ring
+    [( 0, 17, 18), (17, 18, 19), (18, 19, 20)],  # pinky
+]
+# fmt:on
+
 # fmt:off
 HAND_CONNECTIONS = [
     (0, 1), (1, 2), (2, 3), (3, 4),         # Thumb

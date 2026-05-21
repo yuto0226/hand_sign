@@ -5,8 +5,15 @@ import time
 import cv2
 import mediapipe as mp
 
-from model import FINGER_JOINTS, FINGER_LANDMARK_IDXS, FINGER_NAMES
-from utils import MODEL_PATH, angle_at, download_model, draw_landmarks
+from utils import (
+    MODEL_PATH,
+    FINGER_JOINTS,
+    FINGER_LANDMARK_IDXS,
+    FINGER_NAMES,
+    angle_at,
+    download_model,
+    draw_landmarks,
+)
 
 
 def snapshot(result):
