@@ -13,5 +13,6 @@ wheels/
 data/
 *.task
 *.pth
+*.pt
 *.npz
 *.png
