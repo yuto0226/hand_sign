@@ -37,6 +37,29 @@ _PREPROCESS = transforms.Compose(
 WHITE = (245, 245, 240)
 SAGE = (55, 145, 80)
 
+_HINT_SIZE = 160
+
+
+def _load_hint(sign: str):
+    img_path = Path(__file__).parent / "images" / f"{sign}.jpg"
+    if not img_path.exists():
+        return None
+    img = cv2.imread(str(img_path))
+    if img is None:
+        return None
+    return cv2.resize(img, (_HINT_SIZE, _HINT_SIZE))
+
+
+def _draw_hint(frame, hint) -> None:
+    h, w = frame.shape[:2]
+    pad = 8
+    y1 = h - _HINT_SIZE - pad
+    x1 = w - _HINT_SIZE - pad
+    roi = frame[y1 : y1 + _HINT_SIZE, x1 : x1 + _HINT_SIZE]
+    blended = cv2.addWeighted(roi, 0.3, hint, 0.7, 0)
+    frame[y1 : y1 + _HINT_SIZE, x1 : x1 + _HINT_SIZE] = blended
+    cv2.rectangle(frame, (x1, y1), (x1 + _HINT_SIZE, y1 + _HINT_SIZE), WHITE, 1)
+
 
 def _union_bbox(lm_lists, w: int, h: int, pad: float = 0.05):
     all_bboxes = []
@@ -108,6 +131,8 @@ def main() -> None:
     model.load_state_dict(state_dict)
     model.eval()
 
+    hints = {cls: _load_hint(cls) for cls in classes}
+
     sign_filter = SignFilter(hold_ms=args.hold)
     last_fired: tuple[str, float] | None = None
 
@@ -152,6 +177,7 @@ def main() -> None:
                 )
 
                 sign = None
+                pred_idx = -1
                 if result.hand_landmarks:
                     for lms in result.hand_landmarks:
                         draw_landmarks(frame, lms)
@@ -174,6 +200,11 @@ def main() -> None:
 
                 if sign is not None:
                     fsm.feed(sign, now)
+
+                if pred_idx != -1:
+                    hint = hints.get(classes[pred_idx])
+                    if hint is not None:
+                        _draw_hint(frame, hint)
 
                 draw_jutsu(frame, fsm, last_fired, now)
                 cv2.imshow("naruto", frame)
