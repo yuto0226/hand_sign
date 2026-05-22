@@ -99,6 +99,7 @@ def train(
     test_sessions: list[str] | None = None,
     batch_size: int = 32,
     save_path: str = "best_cnn.pth",
+    seed: int = 42,
 ) -> None:
     if train_sessions is None:
         train_sessions = ["s1"]
@@ -115,6 +116,7 @@ def train(
         train_sessions=train_sessions,
         test_sessions=test_sessions,
         batch_size=batch_size,
+        seed=seed,
     )
     print(f"[*] classes ({len(classes)}): {classes}")
 
@@ -167,6 +169,7 @@ def main() -> None:
     parser.add_argument("--test-sessions", nargs="+", default=["s2"])
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--save", default="best_cnn.pth")
+    parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
     train(
         root=args.root,
@@ -174,6 +177,7 @@ def main() -> None:
         test_sessions=args.test_sessions,
         batch_size=args.batch_size,
         save_path=args.save,
+        seed=args.seed,
     )
 
 

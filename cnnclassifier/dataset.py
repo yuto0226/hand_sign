@@ -43,6 +43,7 @@ def make_splits(
     test_sessions: Sequence[str] = ("s2",),
     batch_size: int = 32,
     num_workers: int = 2,
+    seed: int = 42,
 ) -> tuple[DataLoader, DataLoader, DataLoader, list[str]]:
     """Return (train_loader, val_loader, test_loader, class_names).
 
@@ -65,6 +66,25 @@ def make_splits(
             train_idx.append(i)
         elif s in test_sessions_set:
             test_idx_by_class.setdefault(cls, []).append(i)
+
+    # fallback: no session-tagged files → random split by class
+    if not train_idx:
+        import random as _random
+
+        all_by_class: dict[int, list[int]] = {}
+        for i, (_, cls) in enumerate(train_set_full.imgs):
+            all_by_class.setdefault(cls, []).append(i)
+        _random.seed(seed)
+        for indices in all_by_class.values():
+            _random.shuffle(indices)
+            cut = max(1, int(len(indices) * 0.8))
+            train_idx.extend(indices[:cut])
+            test_idx_by_class.setdefault(0, []).extend(indices[cut:])
+        # rebuild test_idx_by_class properly for the test split below
+        test_idx_by_class = {}
+        for i, (_, cls) in enumerate(train_set_full.imgs):
+            if i not in set(train_idx):
+                test_idx_by_class.setdefault(cls, []).append(i)
 
     # carve val evenly from train (every Nth sample)
     val_count = max(1, int(len(train_idx) * val_fraction))

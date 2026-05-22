@@ -28,6 +28,7 @@ def evaluate(
     root: str = "data/cnn",
     train_sessions: list[str] | None = None,
     test_sessions: list[str] | None = None,
+    seed: int = 42,
 ) -> None:
     if train_sessions is None:
         train_sessions = ["s1"]
@@ -46,6 +47,7 @@ def evaluate(
         train_sessions=train_sessions,
         test_sessions=test_sessions,
         num_workers=0,
+        seed=seed,
     )
 
     all_preds: list[int] = []
@@ -73,12 +75,14 @@ def main() -> None:
     parser.add_argument("--root", default="data/cnn")
     parser.add_argument("--train-sessions", nargs="+", default=["s1"])
     parser.add_argument("--test-sessions", nargs="+", default=["s2"])
+    parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
     evaluate(
         checkpoint=args.checkpoint,
         root=args.root,
         train_sessions=args.train_sessions,
         test_sessions=args.test_sessions,
+        seed=args.seed,
     )
 
 
