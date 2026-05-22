@@ -13,6 +13,7 @@ import torch
 import torch.nn as nn
 from torch.optim import Adam
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
+from tqdm import tqdm
 
 from cnnclassifier.dataset import make_splits
 from cnnclassifier.model import build_model, freeze_backbone, unfreeze_blocks
@@ -50,7 +51,7 @@ def _train_epoch(
 ) -> tuple[float, float]:
     model.train()
     total_loss = correct = total = 0
-    for x, y in loader:
+    for x, y in tqdm(loader, desc="  train", leave=False):
         x, y = x.to(device), y.to(device)
         if torch.rand(1).item() < cutmix_p:
             x, ya, yb, lam = cutmix_batch(x, y)
@@ -83,7 +84,7 @@ def _val_epoch(
 ) -> tuple[float, float]:
     model.eval()
     total_loss = correct = total = 0
-    for x, y in loader:
+    for x, y in tqdm(loader, desc="    val", leave=False):
         x, y = x.to(device), y.to(device)
         logits = model(x)
         total_loss += criterion(logits, y).item() * len(y)
@@ -106,6 +107,8 @@ def train(
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"[*] device: {device}")
+    if device.type == "cuda":
+        print(f"  GPU: {torch.cuda.get_device_name(0)}")
 
     train_loader, val_loader, _, classes = make_splits(
         root,
@@ -123,10 +126,10 @@ def train(
     freeze_backbone(model)
     classifier_p1 = cast(nn.Sequential, getattr(model, "classifier", None))
     opt = Adam(classifier_p1.parameters(), lr=1e-3)
-    for epoch in range(10):
+    for epoch in tqdm(range(10), desc="phase-1"):
         tl, ta = _train_epoch(model, train_loader, criterion, opt, device, cutmix_p=0.0)
         vl, va = _val_epoch(model, val_loader, criterion, device)
-        print(f"  [{epoch + 1:02d}] train {ta:.3f}  val {va:.3f}")
+        tqdm.write(f"  [{epoch + 1:02d}] train {ta:.3f}  val {va:.3f}")
 
     # ── Phase 2: last 2 blocks ────────────────────────────────────────────
     print("\n── Phase 2: last 2 blocks (15 epochs) ──")
@@ -142,24 +145,17 @@ def train(
     )
     scheduler = CosineAnnealingWarmRestarts(opt, T_0=10)
     best_val_loss = float("inf")
-    patience = 0
 
-    for epoch in range(15):
+    for epoch in tqdm(range(15), desc="phase-2"):
         tl, ta = _train_epoch(model, train_loader, criterion, opt, device)
         vl, va = _val_epoch(model, val_loader, criterion, device)
         scheduler.step()
         lr_now = scheduler.get_last_lr()[0]
-        print(f"  [{epoch + 1:02d}] train {ta:.3f}  val {va:.3f}  lr {lr_now:.2e}")
+        tqdm.write(f"  [{epoch + 1:02d}] train {ta:.3f}  val {va:.3f}  lr {lr_now:.2e}")
         if vl < best_val_loss:
             best_val_loss = vl
-            patience = 0
             torch.save({"model": model.state_dict(), "classes": classes}, save_path)
-            print(f"       ↳ saved {save_path}")
-        else:
-            patience += 1
-            if patience >= 15:
-                print(f"       ↳ early stop at epoch {epoch + 1}")
-                break
+            tqdm.write(f"       ↳ saved {save_path}")
 
     print(f"\n[*] best checkpoint → {save_path}")
 
