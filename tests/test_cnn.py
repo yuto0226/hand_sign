@@ -69,3 +69,15 @@ def test_make_splits_no_session_overlap():
         # test set should only contain s2 images (last 50%)
         batch_count = sum(1 for _ in test_loader)
         assert batch_count > 0
+
+
+def test_cutmix_batch_output_shape():
+    from cnnclassifier.train import cutmix_batch
+
+    x = torch.rand(4, 3, 224, 224)
+    y = torch.randint(0, 12, (4,))
+    mixed_x, ya, yb, lam = cutmix_batch(x, y, alpha=0.5)
+    assert mixed_x.shape == x.shape
+    assert ya.shape == y.shape
+    assert yb.shape == y.shape
+    assert 0.0 <= lam <= 1.0
