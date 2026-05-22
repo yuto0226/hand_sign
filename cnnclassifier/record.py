@@ -60,6 +60,30 @@ def _union_bbox(lm_lists, w: int, h: int, pad: float = 0.05):
     return ux1, uy1, ux2, uy2
 
 
+_HINT_SIZE = 160  # px, square
+
+
+def _load_hint(sign: str):
+    img_path = Path(__file__).parent.parent / "images" / f"{sign}.jpg"
+    if not img_path.exists():
+        return None
+    img = cv2.imread(str(img_path))
+    if img is None:
+        return None
+    return cv2.resize(img, (_HINT_SIZE, _HINT_SIZE))
+
+
+def _draw_hint(frame, hint) -> None:
+    h, w = frame.shape[:2]
+    pad = 8
+    y1 = h - _HINT_SIZE - pad
+    x1 = w - _HINT_SIZE - pad
+    roi = frame[y1 : y1 + _HINT_SIZE, x1 : x1 + _HINT_SIZE]
+    blended = cv2.addWeighted(roi, 0.3, hint, 0.7, 0)
+    frame[y1 : y1 + _HINT_SIZE, x1 : x1 + _HINT_SIZE] = blended
+    cv2.rectangle(frame, (x1, y1), (x1 + _HINT_SIZE, y1 + _HINT_SIZE), WHITE, 1)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--sign", required=True, choices=_SIGNS)
@@ -71,6 +95,7 @@ def main() -> None:
     out_dir = Path(args.out) / args.sign
     out_dir.mkdir(parents=True, exist_ok=True)
 
+    hint = _load_hint(args.sign)
     counter = len(list(out_dir.glob(f"{args.session}_*.jpg")))
 
     download_model()
@@ -119,6 +144,8 @@ def main() -> None:
                 cv2.putText(
                     frame, label, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, WHITE, 2
                 )
+                if hint is not None:
+                    _draw_hint(frame, hint)
                 cv2.imshow("record", frame)
 
                 key = cv2.waitKey(1) & 0xFF
