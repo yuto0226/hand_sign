@@ -23,7 +23,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from cnnclassifier.evaluate import load_checkpoint
 from cnnclassifier.model import build_model
 from jutsu import JutsuFSM, SignFilter, draw_jutsu
-from utils import MODEL_PATH, download_model, draw_landmarks
+from utils import MODEL_PATH, download_model
 
 _PREPROCESS = transforms.Compose(
     [
@@ -179,7 +179,7 @@ def main() -> None:
                 pred_idx = -1
                 if result.hand_landmarks:
                     for lms in result.hand_landmarks:
-                        draw_landmarks(frame, lms)
+                        pass  # draw_landmarks(frame, lms)
 
                     ux1, uy1, ux2, uy2 = _union_bbox(result.hand_landmarks, w, h)
                     cv2.rectangle(frame, (ux1, uy1), (ux2, uy2), SAGE, 1)
