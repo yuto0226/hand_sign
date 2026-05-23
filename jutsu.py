@@ -146,7 +146,7 @@ def draw_jutsu(
     now: float,
 ) -> None:
     h, w = frame.shape[:2]
-    font_fl = _font(36)
+    font_fl = _font(54)
     font_pr = _font(24)
 
     # Flash: darken background strip first (cv2 blend), then draw text with PIL
