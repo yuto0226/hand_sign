@@ -118,7 +118,7 @@ def main() -> None:
     parser.add_argument("--checkpoint", default="best_cnn.pth")
     parser.add_argument("--camera", type=int, default=0)
     parser.add_argument("--threshold", type=float, default=0.4)
-    parser.add_argument("--hold", type=float, default=500)
+    parser.add_argument("--hold", type=float, default=100)
     parser.add_argument("--gap", type=float, default=5000)
     parser.add_argument("--cooldown", type=float, default=5000)
     args = parser.parse_args()

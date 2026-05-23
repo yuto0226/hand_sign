@@ -41,7 +41,7 @@ SIGN_KANJI: dict[str, str] = {
 
 JUTSU: dict[str, list[str]] = {
     "火遁・豪火球の術": ["亥", "寅"],
-    "影分身の術": ["寅"],
+    # "影分身の術": ["寅"],
     "土遁・土流壁": ["亥", "寅", "戌"],
     "雷遁・千鳥": ["丑", "寅", "戌", "卯", "巳"],
     "風遁・螺旋手裏剣": ["巳", "午", "丑"],
@@ -105,8 +105,12 @@ class JutsuFSM:
         self._step: dict[str, int] = {name: 0 for name in jutsu}
         self._last_at: dict[str, float] = {name: 0.0 for name in jutsu}
         self._fired_at: float = -cooldown_ms  # allow immediate first fire
+        self._last_sign: str | None = None
 
     def feed(self, sign: str, now: float) -> None:
+        if sign == self._last_sign:
+            return
+        self._last_sign = sign
         kanji = SIGN_KANJI.get(sign)
         if kanji is None:
             return
@@ -135,6 +139,7 @@ class JutsuFSM:
     def reset(self) -> None:
         for name in self._step:
             self._step[name] = 0
+        self._last_sign = None
 
     def leading_jutsu(self) -> tuple[str, int, int] | None:
         """Return (name, step, total) for the jutsu with the most progress.
