@@ -120,6 +120,7 @@ def main() -> None:
     parser.add_argument("--threshold", type=float, default=0.4)
     parser.add_argument("--hold", type=float, default=500)
     parser.add_argument("--gap", type=float, default=3000)
+    parser.add_argument("--cooldown", type=float, default=5000)
     args = parser.parse_args()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -141,7 +142,7 @@ def main() -> None:
         last_fired = (name, time.monotonic())
         print(f"[!] {name}")
 
-    fsm = JutsuFSM(on_jutsu=on_jutsu, gap_ms=args.gap)
+    fsm = JutsuFSM(on_jutsu=on_jutsu, gap_ms=args.gap, cooldown_ms=args.cooldown)
 
     download_model()
     options = mp.tasks.vision.HandLandmarkerOptions(

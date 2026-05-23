@@ -96,12 +96,15 @@ class JutsuFSM:
         on_jutsu: Callable[[str], None],
         jutsu: dict[str, list[str]] = JUTSU,
         gap_ms: float = 3000,
+        cooldown_ms: float = 5000,
     ) -> None:
         self.jutsu = jutsu
         self.gap_ms = gap_ms
+        self.cooldown_ms = cooldown_ms
         self.on_jutsu = on_jutsu
         self._step: dict[str, int] = {name: 0 for name in jutsu}
         self._last_at: dict[str, float] = {name: 0.0 for name in jutsu}
+        self._fired_at: float = -cooldown_ms  # allow immediate first fire
 
     def feed(self, sign: str, now: float) -> None:
         kanji = SIGN_KANJI.get(sign)
@@ -122,8 +125,9 @@ class JutsuFSM:
                     completed.append(name)
             else:
                 self._step[name] = 0
-        if completed:
+        if completed and (now - self._fired_at) * 1000 >= self.cooldown_ms:
             winner = max(completed, key=lambda n: len(self.jutsu[n]))
+            self._fired_at = now
             self.reset()
             self.on_jutsu(winner)
 
