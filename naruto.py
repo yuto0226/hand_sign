@@ -84,9 +84,9 @@ def draw_overlay(
     is_unknown = pred_idx == -1
     pred_cls = "unknown" if is_unknown else classes[pred_idx]
 
-    roi = frame[8:58, 8:420]
+    roi = frame[8:58, 8:210]
     black = np.zeros_like(roi)
-    frame[8:58, 8:420] = cv2.addWeighted(roi, 0.55, black, 0.45, 0)
+    frame[8:58, 8:210] = cv2.addWeighted(roi, 0.55, black, 0.45, 0)
     cv2.putText(
         frame,
         f"{pred_cls}  {conf:.1%}",
