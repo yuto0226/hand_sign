@@ -1,9 +1,27 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from functools import lru_cache
+from pathlib import Path
 
 import cv2
 import numpy as np
+from PIL import Image, ImageDraw, ImageFont
+
+_FONT_PATHS = [
+    "C:/Windows/Fonts/YuGothM.ttc",
+    "C:/Windows/Fonts/meiryo.ttc",
+    "C:/Windows/Fonts/msgothic.ttc",
+    "C:/Windows/Fonts/msmincho.ttc",
+]
+
+
+@lru_cache(maxsize=8)
+def _font(size: int) -> ImageFont.FreeTypeFont:
+    for p in _FONT_PATHS:
+        if Path(p).exists():
+            return ImageFont.truetype(p, size)
+    raise RuntimeError("No CJK font found. Install one of: " + ", ".join(_FONT_PATHS))
 
 
 SIGN_KANJI: dict[str, str] = {
@@ -121,39 +139,51 @@ def draw_jutsu(
     now: float,
 ) -> None:
     h, w = frame.shape[:2]
-    font = cv2.FONT_HERSHEY_SIMPLEX
+    font_fl = _font(36)
+    font_pr = _font(24)
 
-    # Flash: show jutsu name for 1s after firing
+    # Flash: darken background strip first (cv2 blend), then draw text with PIL
     if last_fired is not None:
         name, fired_at = last_fired
         if now - fired_at < 1.0:
-            (tw, th), _ = cv2.getTextSize(name, font, 1.2, 2)  # noqa: F841
+            tw = font_fl.getbbox(name)[2]
             tx = (w - tw) // 2
-            roi = frame[30:90, max(tx - 8, 0) : min(tx + tw + 8, w)]
-            black = np.zeros_like(roi)
-            frame[30:90, max(tx - 8, 0) : min(tx + tw + 8, w)] = cv2.addWeighted(
-                roi, 0.45, black, 0.55, 0
+            x1, x2 = max(tx - 8, 0), min(tx + tw + 8, w)
+            roi = frame[30:90, x1:x2]
+            frame[30:90, x1:x2] = cv2.addWeighted(
+                roi, 0.45, np.zeros_like(roi), 0.55, 0
             )
-            cv2.putText(frame, name, (tx, 70), font, 1.2, (255, 255, 255), 2)
 
-    # Progress: sign chain for the leading jutsu
+    img = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+    draw = ImageDraw.Draw(img)
+
+    if last_fired is not None:
+        name, fired_at = last_fired
+        if now - fired_at < 1.0:
+            bb = font_fl.getbbox(name)
+            tw, th = bb[2] - bb[0], bb[3] - bb[1]
+            tx = (w - tw) // 2
+            ty = 30 + (60 - th) // 2
+            draw.text((tx, ty), name, font=font_fl, fill=(255, 255, 255))
+
     leading = fsm.leading_jutsu()
-    if leading is None:
-        return
+    if leading is not None:
+        jutsu_name, step, total = leading
+        seq = fsm.jutsu[jutsu_name]
+        x, y = 10, h - 55
 
-    jutsu_name, step, total = leading
-    seq = fsm.jutsu[jutsu_name]
-    x, y = 10, h - 50
+        for i, kanji in enumerate(seq):
+            done = i < step
+            current = i == step
+            color = (
+                (120, 220, 0) if done else (200, 200, 200) if current else (80, 80, 80)
+            )
+            label = f"[{kanji}]" if current else kanji
+            draw.text((x, y), label, font=font_pr, fill=color)
+            lw = font_pr.getbbox(label)[2]
+            x += lw + 4
+            if i < total - 1:
+                draw.text((x, y), ">", font=font_pr, fill=(100, 100, 100))
+                x += font_pr.getbbox(">")[2] + 4
 
-    for i, kanji in enumerate(seq):
-        done = i < step
-        current = i == step
-        color = (0, 220, 120) if done else (200, 200, 200) if current else (80, 80, 80)
-        label = f"[{kanji}]" if current else kanji
-        cv2.putText(frame, label, (x, y), font, 0.8, color, 2)
-        (lw, _), _ = cv2.getTextSize(label, font, 0.8, 2)
-        x += lw + 4
-        if i < total - 1:
-            cv2.putText(frame, ">", (x, y), font, 0.7, (100, 100, 100), 1)
-            (aw, _), _ = cv2.getTextSize(">", font, 0.7, 1)
-            x += aw + 4
+    frame[:] = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
