@@ -107,6 +107,7 @@ class JutsuFSM:
         kanji = SIGN_KANJI.get(sign)
         if kanji is None:
             return
+        completed: list[str] = []
         for name, seq in self.jutsu.items():
             if (
                 self._step[name] > 0
@@ -118,10 +119,13 @@ class JutsuFSM:
                 self._step[name] += 1
                 self._last_at[name] = now
                 if self._step[name] == len(seq):
-                    self.reset()
-                    self.on_jutsu(name)
+                    completed.append(name)
             else:
                 self._step[name] = 0
+        if completed:
+            winner = max(completed, key=lambda n: len(self.jutsu[n]))
+            self.reset()
+            self.on_jutsu(winner)
 
     def reset(self) -> None:
         for name in self._step:
