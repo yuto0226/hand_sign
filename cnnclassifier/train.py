@@ -130,7 +130,7 @@ def train(
     for epoch in tqdm(range(10), desc="head only"):
         tl, ta = _train_epoch(model, train_loader, criterion, opt, device, cutmix_p=0.0)
         vl, va = _val_epoch(model, val_loader, criterion, device)
-        tqdm.write(f"  [{epoch + 1:02d}] train acc={ta:.3f}  val acc={va:.3f}")
+        tqdm.write(f"[*] epoch {epoch + 1}: train acc={ta:.3f}  val acc={va:.3f}")
 
     print("[*] last 2 blocks")
     unfreeze_blocks(model, [7, 8])
@@ -152,7 +152,7 @@ def train(
         scheduler.step()
         lr_now = scheduler.get_last_lr()[0]
         tqdm.write(
-            f"  [{epoch + 1:02d}] train acc={ta:.3f}  val acc={va:.3f}  lr={lr_now:.2e}"
+            f"[*] epoch {epoch + 1}: train acc={ta:.3f}  val acc={va:.3f}  lr={lr_now:.2e}"
         )
         if vl < best_val_loss:
             best_val_loss = vl
