@@ -153,11 +153,14 @@ def draw_jutsu(
     if last_fired is not None:
         name, fired_at = last_fired
         if now - fired_at < 1.0:
-            tw = font_fl.getbbox(name)[2]
+            bb = font_fl.getbbox(name)
+            tw, th = bb[2] - bb[0], bb[3] - bb[1]
             tx = (w - tw) // 2
+            ty = (h - th) // 2
             x1, x2 = max(tx - 8, 0), min(tx + tw + 8, w)
-            roi = frame[30:90, x1:x2]
-            frame[30:90, x1:x2] = cv2.addWeighted(
+            y1, y2 = max(ty - 8, 0), min(ty + th + 8, h)
+            roi = frame[y1:y2, x1:x2]
+            frame[y1:y2, x1:x2] = cv2.addWeighted(
                 roi, 0.45, np.zeros_like(roi), 0.55, 0
             )
 
@@ -170,7 +173,7 @@ def draw_jutsu(
             bb = font_fl.getbbox(name)
             tw, th = bb[2] - bb[0], bb[3] - bb[1]
             tx = (w - tw) // 2
-            ty = 30 + (60 - th) // 2
+            ty = (h - th) // 2
             draw.text((tx, ty), name, font=font_fl, fill=(255, 255, 255))
 
     leading = fsm.leading_jutsu()
