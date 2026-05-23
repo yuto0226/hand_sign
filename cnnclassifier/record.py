@@ -86,7 +86,7 @@ def _draw_hint(frame, hint) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--sign", required=True, choices=_SIGNS)
+    parser.add_argument("--sign", required=True, choices=_SIGNS + ["unknown"])
     parser.add_argument("--session", default="s1")
     parser.add_argument("--every", type=int, default=3, help="save every N frames")
     parser.add_argument("--out", default="data/cnn")
@@ -140,9 +140,12 @@ def main() -> None:
                     if ux2 > ux1 and uy2 > uy1:
                         roi = frame[uy1:uy2, ux1:ux2]
 
-                label = f"{'[REC]' if recording else '[PAUSE]'}  {_KANJI[args.sign]}  n={counter}"
+                if recording:
+                    cv2.circle(frame, (20, 20), 8, (0, 0, 255), -1)
+                kanji = _KANJI.get(args.sign, "")
+                label = f"{args.sign} {kanji}  n={counter}".strip()
                 cv2.putText(
-                    frame, label, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, WHITE, 2
+                    frame, label, (10, h - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, WHITE, 1
                 )
                 if hint is not None:
                     _draw_hint(frame, hint)
