@@ -83,7 +83,6 @@ def draw_overlay(
 ) -> None:
     is_unknown = pred_idx == -1
     pred_cls = "unknown" if is_unknown else classes[pred_idx]
-    h = frame.shape[0]
 
     roi = frame[8:58, 8:420]
     black = np.zeros_like(roi)
@@ -99,16 +98,16 @@ def draw_overlay(
     )
 
     for i, (cls, p) in enumerate(zip(classes, probs)):
-        y = h - 16 - i * 28
+        y_top = 65 + i * 22
         bar_w = int(p * 170)
         color = (0, 220, 120) if (not is_unknown and i == pred_idx) else (100, 100, 100)
-        cv2.rectangle(frame, (10, y - 16), (10 + bar_w, y), color, -1)
+        cv2.rectangle(frame, (10, y_top), (10 + bar_w, y_top + 16), color, -1)
         cv2.putText(
             frame,
             f"{cls}: {p:.2f}",
-            (10 + bar_w + 8, y - 2),
+            (10 + bar_w + 8, y_top + 13),
             cv2.FONT_HERSHEY_SIMPLEX,
-            0.5,
+            0.45,
             (225, 225, 225),
             1,
         )
@@ -208,8 +207,12 @@ def main() -> None:
 
                 draw_jutsu(frame, fsm, last_fired, now)
                 cv2.imshow("naruto", frame)
-                if cv2.waitKey(1) & 0xFF == ord("q"):
+                key = cv2.waitKey(1) & 0xFF
+                if key == ord("q"):
                     break
+                elif key == ord(" "):
+                    fsm.reset()
+                    sign_filter.reset()
     finally:
         cap.release()
         cv2.destroyAllWindows()

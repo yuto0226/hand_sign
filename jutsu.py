@@ -80,6 +80,9 @@ class SignFilter:
             return sign
         return None
 
+    def reset(self) -> None:
+        self._current = None
+
 
 class JutsuFSM:
     """Matches a stream of confirmed signs against jutsu sequences.
@@ -119,6 +122,10 @@ class JutsuFSM:
                     self.on_jutsu(name)
             else:
                 self._step[name] = 0
+
+    def reset(self) -> None:
+        for name in self._step:
+            self._step[name] = 0
 
     def leading_jutsu(self) -> tuple[str, int, int] | None:
         """Return (name, step, total) for the jutsu with the most progress.
