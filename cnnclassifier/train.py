@@ -123,18 +123,16 @@ def train(
     model = build_model(num_classes=len(classes)).to(device)
     criterion = nn.CrossEntropyLoss(label_smoothing=0.1)
 
-    # ── Phase 1: head only ────────────────────────────────────────────────
-    print("\n── Phase 1: head only (10 epochs) ──")
+    print("[*] head only")
     freeze_backbone(model)
     classifier_p1 = cast(nn.Sequential, getattr(model, "classifier", None))
     opt = Adam(classifier_p1.parameters(), lr=1e-3)
-    for epoch in tqdm(range(10), desc="phase-1"):
+    for epoch in tqdm(range(10), desc="head only"):
         tl, ta = _train_epoch(model, train_loader, criterion, opt, device, cutmix_p=0.0)
         vl, va = _val_epoch(model, val_loader, criterion, device)
-        tqdm.write(f"  [{epoch + 1:02d}] train {ta:.3f}  val {va:.3f}")
+        tqdm.write(f"  [{epoch + 1:02d}] train acc={ta:.3f}  val acc={va:.3f}")
 
-    # ── Phase 2: last 2 blocks ────────────────────────────────────────────
-    print("\n── Phase 2: last 2 blocks (15 epochs) ──")
+    print("[*] last 2 blocks")
     unfreeze_blocks(model, [7, 8])
     features = cast(nn.Sequential, getattr(model, "features", None))
     classifier = cast(nn.Sequential, getattr(model, "classifier", None))
@@ -148,12 +146,14 @@ def train(
     scheduler = CosineAnnealingWarmRestarts(opt, T_0=10)
     best_val_loss = float("inf")
 
-    for epoch in tqdm(range(15), desc="phase-2"):
+    for epoch in tqdm(range(15), desc="last 2 blocks"):
         tl, ta = _train_epoch(model, train_loader, criterion, opt, device)
         vl, va = _val_epoch(model, val_loader, criterion, device)
         scheduler.step()
         lr_now = scheduler.get_last_lr()[0]
-        tqdm.write(f"  [{epoch + 1:02d}] train {ta:.3f}  val {va:.3f}  lr {lr_now:.2e}")
+        tqdm.write(
+            f"  [{epoch + 1:02d}] train acc={ta:.3f}  val acc={va:.3f}  lr={lr_now:.2e}"
+        )
         if vl < best_val_loss:
             best_val_loss = vl
             torch.save({"model": model.state_dict(), "classes": classes}, save_path)
