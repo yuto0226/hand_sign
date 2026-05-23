@@ -134,6 +134,7 @@ def main() -> None:
 
     sign_filter = SignFilter(hold_ms=args.hold)
     last_fired: tuple[str, float] | None = None
+    last_sign_at: float = 0.0
 
     def on_jutsu(name: str) -> None:
         nonlocal last_fired
@@ -199,6 +200,11 @@ def main() -> None:
 
                 if sign is not None:
                     fsm.feed(sign, now)
+                    last_sign_at = now
+                elif now - last_sign_at > args.gap / 1000:
+                    fsm.reset()
+                    sign_filter.reset()
+                    last_sign_at = now
 
                 if pred_idx != -1:
                     hint = hints.get(classes[pred_idx])
