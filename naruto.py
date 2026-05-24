@@ -196,6 +196,8 @@ def main() -> None:
                         pred_idx = raw_idx if conf >= args.threshold else -1
                         draw_overlay(frame, classes, probs_t.tolist(), pred_idx, conf)
                         sign = sign_filter.update(pred_idx, classes, now)
+                    else:
+                        sign = sign_filter.update(-1, classes, now)
                 else:
                     sign = sign_filter.update(-1, classes, now)
 
