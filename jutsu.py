@@ -147,6 +147,8 @@ class JutsuFSM:
         Ties are broken by insertion order of the jutsu dict (first entry wins).
         Returns None if no jutsu has any progress.
         """
+        if not self._step:
+            return None
         best_name = max(self._step, key=self._step.__getitem__)
         if self._step[best_name] == 0:
             return None
@@ -204,10 +206,11 @@ def draw_jutsu(
             )
             label = f"[{kanji}]" if current else kanji
             draw.text((x, y), label, font=font_pr, fill=color)
-            lw = font_pr.getbbox(label)[2]
-            x += lw + 4
+            bb_label = font_pr.getbbox(label)
+            x += (bb_label[2] - bb_label[0]) + 4
             if i < total - 1:
                 draw.text((x, y), ">", font=font_pr, fill=(100, 100, 100))
-                x += font_pr.getbbox(">")[2] + 4
+                bb_gt = font_pr.getbbox(">")
+                x += (bb_gt[2] - bb_gt[0]) + 4
 
     frame[:] = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
