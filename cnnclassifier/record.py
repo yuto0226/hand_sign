@@ -2,7 +2,8 @@
 
 Usage:
     python -m cnnclassifier.record --sign tora --session s1
-    SPACE — toggle recording on/off
+    SPACE — save one photo now
+    r     — toggle continuous recording on/off
     q     — quit
 """
 
@@ -154,8 +155,13 @@ def main() -> None:
                 key = cv2.waitKey(1) & 0xFF
                 if key == ord("q"):
                     break
-                elif key == ord(" "):
+                elif key == ord("r"):
                     recording = not recording
+                elif key == ord(" "):
+                    if roi is not None:
+                        path = out_dir / f"{args.session}_{counter:04d}.jpg"
+                        cv2.imwrite(str(path), roi)
+                        counter += 1
 
                 if recording and roi is not None and frame_n % args.every == 0:
                     path = out_dir / f"{args.session}_{counter:04d}.jpg"
