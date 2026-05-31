@@ -111,7 +111,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--sign", required=True, choices=_SIGNS + ["unknown"])
     parser.add_argument("--session", default="s1")
-    parser.add_argument("--every", type=int, default=3, help="save every N frames")
+    parser.add_argument("--every", type=int, default=10, help="save every N frames")
     parser.add_argument("--out", default="data/cnn")
     args = parser.parse_args()
 
