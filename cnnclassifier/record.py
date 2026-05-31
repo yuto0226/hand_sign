@@ -85,6 +85,28 @@ def _draw_hint(frame, hint) -> None:
     cv2.rectangle(frame, (x1, y1), (x1 + _HINT_SIZE, y1 + _HINT_SIZE), WHITE, 1)
 
 
+def _draw_countdown(frame, n: int) -> None:
+    h, w = frame.shape[:2]
+    text = str(n)
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    font_scale = 5.0
+    thickness = 10
+    (tw, th), baseline = cv2.getTextSize(text, font, font_scale, thickness)
+    x = (w - tw) // 2
+    y = (h + th) // 2
+    cv2.putText(frame, text, (x, y), font, font_scale, WHITE, thickness, cv2.LINE_AA)
+    cv2.putText(
+        frame,
+        "Get ready",
+        (x, y + th + baseline + 20),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        1.0,
+        WHITE,
+        2,
+        cv2.LINE_AA,
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--sign", required=True, choices=_SIGNS + ["unknown"])
@@ -119,6 +141,10 @@ def main() -> None:
     frame_n = 0
     recording = False
 
+    countdown_active = False
+    countdown_t0 = 0.0
+    countdown_seconds = 3
+
     try:
         with mp.tasks.vision.HandLandmarker.create_from_options(options) as landmarker:
             while True:
@@ -143,6 +169,20 @@ def main() -> None:
 
                 if recording:
                     cv2.circle(frame, (20, 20), 8, (0, 0, 255), -1)
+
+                if countdown_active:
+                    elapsed = now - countdown_t0
+                    n = countdown_seconds - int(elapsed)
+                    if n > 0:
+                        _draw_countdown(frame, n)
+                    else:
+                        # Save the *current* ROI after the countdown finishes.
+                        if roi is not None:
+                            path = out_dir / f"{args.session}_{counter:04d}.jpg"
+                            cv2.imwrite(str(path), roi)
+                            counter += 1
+                        countdown_active = False
+
                 kanji = _KANJI.get(args.sign, "")
                 label = f"{args.sign} {kanji}  n={counter}".strip()
                 cv2.putText(
@@ -158,12 +198,16 @@ def main() -> None:
                 elif key == ord("r"):
                     recording = not recording
                 elif key == ord(" "):
-                    if roi is not None:
-                        path = out_dir / f"{args.session}_{counter:04d}.jpg"
-                        cv2.imwrite(str(path), roi)
-                        counter += 1
+                    if not countdown_active:
+                        countdown_active = True
+                        countdown_t0 = now
 
-                if recording and roi is not None and frame_n % args.every == 0:
+                if (
+                    (not countdown_active)
+                    and recording
+                    and roi is not None
+                    and frame_n % args.every == 0
+                ):
                     path = out_dir / f"{args.session}_{counter:04d}.jpg"
                     cv2.imwrite(str(path), roi)
                     counter += 1
