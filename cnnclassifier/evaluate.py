@@ -42,13 +42,19 @@ def evaluate(
     model.load_state_dict(state_dict)
     model.eval()
 
-    _, _, test_loader, _ = make_splits(
+    _, _, test_loader, dataset_classes = make_splits(
         root,
         train_sessions=train_sessions,
         test_sessions=test_sessions,
         num_workers=0,
         seed=seed,
     )
+
+    if dataset_classes != classes:
+        raise ValueError(
+            "Dataset classes do not match checkpoint classes. "
+            f"dataset={dataset_classes} checkpoint={classes}"
+        )
 
     all_preds: list[int] = []
     all_labels: list[int] = []
@@ -63,9 +69,27 @@ def evaluate(
         all_preds.extend(logits.argmax(1).cpu().tolist())
         all_labels.extend(y.tolist())
 
-    print(classification_report(all_labels, all_preds, target_names=classes, digits=3))
+    if not all_labels:
+        raise SystemExit(
+            "Test split is empty. Your dataset likely has no files matching "
+            f"test_sessions={test_sessions}. "
+            "Either record that session (e.g. s2_*.jpg) or pass a different "
+            "--test-sessions value."
+        )
+
+    labels = list(range(len(classes)))
+    print(
+        classification_report(
+            all_labels,
+            all_preds,
+            labels=labels,
+            target_names=classes,
+            digits=3,
+            zero_division="warn",
+        )
+    )
     print("Confusion matrix (rows=true, cols=pred):")
-    print(confusion_matrix(all_labels, all_preds))
+    print(confusion_matrix(all_labels, all_preds, labels=labels))
     print(f"\nAvg inference latency: {np.mean(latencies):.2f} ms/sample")
 
 

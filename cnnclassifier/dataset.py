@@ -67,6 +67,39 @@ def make_splits(
         elif s in test_sessions_set:
             test_idx_by_class.setdefault(cls, []).append(i)
 
+    # fallback: requested test sessions do not exist in this dataset
+    # (e.g. only s1_* files are present but test_sessions=['s2']).
+    if train_idx and sum(len(v) for v in test_idx_by_class.values()) == 0:
+        import random as _random
+
+        _random.seed(seed)
+        train_by_class: dict[int, list[int]] = {}
+        for i in train_idx:
+            _, cls = train_set_full.imgs[i]
+            train_by_class.setdefault(cls, []).append(i)
+
+        new_train_idx: list[int] = []
+        test_idx_by_class = {}
+        for cls, indices in train_by_class.items():
+            _random.shuffle(indices)
+            cut = max(1, int(len(indices) * 0.8))
+            new_train_idx.extend(indices[:cut])
+            test_idx_by_class[cls] = indices[cut:]
+        train_idx = new_train_idx
+
+        # If the dataset is extremely small, the per-class split above can
+        # still yield an empty test set. Fall back to a global split.
+        if sum(len(v) for v in test_idx_by_class.values()) == 0:
+            _random.shuffle(train_idx)
+            cut = max(1, int(len(train_idx) * 0.8))
+            global_train = train_idx[:cut]
+            global_test = train_idx[cut:]
+            train_idx = global_train
+            test_idx_by_class = {}
+            for i in global_test:
+                _, cls = train_set_full.imgs[i]
+                test_idx_by_class.setdefault(cls, []).append(i)
+
     # fallback: no session-tagged files → random split by class
     if not train_idx:
         import random as _random
@@ -79,7 +112,6 @@ def make_splits(
             _random.shuffle(indices)
             cut = max(1, int(len(indices) * 0.8))
             train_idx.extend(indices[:cut])
-            test_idx_by_class.setdefault(0, []).extend(indices[cut:])
         # rebuild test_idx_by_class properly for the test split below
         test_idx_by_class = {}
         for i, (_, cls) in enumerate(train_set_full.imgs):
